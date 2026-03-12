@@ -67,16 +67,16 @@ export function AirWaves({ flowSpeed, co2Ppm }: { flowSpeed: number, co2Ppm: num
   });
 
   return (
-    <group position={[0, 4, 0]}>
-      {/* Multiply the planes to give a volumetric wave feel inside the Oxy 3 */}
+    <group position={[0.4, 4.0, 0.2]}>
+      {/* Multiply the planes to give a volumetric wave feel inside the Oxy-3 */}
       <mesh material={waveShader} position={[0, 0, 0]}>
-        <planeGeometry args={[3.8, 7.8, 32, 32]} />
+        <planeGeometry args={[2.5, 7.8, 32, 32]} />
       </mesh>
-      <mesh material={waveShader} position={[0, 0, -0.5]}>
-        <planeGeometry args={[3.8, 7.8, 32, 32]} />
+      <mesh material={waveShader} position={[0, 0, -0.4]}>
+        <planeGeometry args={[2.5, 7.8, 32, 32]} />
       </mesh>
-      <mesh material={waveShader} position={[0, 0, 0.5]}>
-        <planeGeometry args={[3.8, 7.8, 32, 32]} />
+      <mesh material={waveShader} position={[0, 0, 0.4]}>
+        <planeGeometry args={[2.5, 7.8, 32, 32]} />
       </mesh>
     </group>
   );

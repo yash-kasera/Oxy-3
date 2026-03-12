@@ -90,8 +90,8 @@ export default function App() {
         <Environment preset="city" />
 
         <group position={[0, -4, 0]}>
-          <FiltrationBase theme={theme} />
-          <CoreReactor theme={theme} />
+          <FiltrationBase />
+          <CoreReactor />
           <ExteriorShell opacity={xrayView} />
           <AirWaves flowSpeed={flowSpeed} co2Ppm={co2Ppm} />
         </group>
