@@ -7,7 +7,7 @@ import GUI from 'lil-gui';
 import { FiltrationBase } from './components/FiltrationBase';
 import { CoreReactor } from './components/CoreReactor';
 import { ExteriorShell } from './components/ExteriorShell';
-import { AirWaves } from './components/AirWaves';
+import { AirParticles } from './components/AirParticles';
 
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -93,7 +93,7 @@ export default function App() {
           <FiltrationBase />
           <CoreReactor />
           <ExteriorShell opacity={xrayView} />
-          <AirWaves flowSpeed={flowSpeed} co2Ppm={co2Ppm} />
+          <AirParticles flowSpeed={flowSpeed} co2Ppm={co2Ppm} />
         </group>
 
         <OrbitControls 

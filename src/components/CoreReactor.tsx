@@ -16,9 +16,9 @@ export function CoreReactor() {
   });
 
   return (
-    <group position={[0.2, 4.0, 0.4]}>
-      {/* The Glowing Cuboidal Algae Tank */}
-      <RoundedBox args={[1.8, 6.0, 1.8]} radius={0.1} smoothness={4}>
+    <group position={[-0.6, 4.4, 0.0]}>
+      {/* The Glowing Cuboidal Algae Tank, vastly expanded but cut off cleanly above the filter chamber floor */}
+      <RoundedBox args={[3.0, 5.4, 2.6]} radius={0.1} smoothness={4}>
         <meshPhysicalMaterial 
           ref={tankMatRef}
           color="#11ff44" 
@@ -32,9 +32,9 @@ export function CoreReactor() {
         <ComponentLabel text="Microalgae Liquid Tank" position={[0, 0, 1.0]} />
       </RoundedBox>
       
-      {/* Bubbling effect: tiny glowing spheres rising within the cuboidal tank */}
-      {Array.from({ length: 150 }).map((_, i) => (
-        <Bubble key={i} index={i} width={1.6} height={5.8} depth={1.6} />
+      {/* Bubbling effect: tiny glowing spheres rising within out across the vast cuboidal tank */}
+      {Array.from({ length: 300 }).map((_, i) => (
+        <Bubble key={i} index={i} width={2.8} height={5.2} depth={2.4} />
       ))}
     </group>
   );

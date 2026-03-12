@@ -61,11 +61,25 @@ export function ExteriorShell({ opacity }: { opacity: number }) {
     clearcoatRoughness: 0.1,
   }), []);
 
+  // Define the custom 2D contour for the front moss face to perfectly wrap the diagonal glass
+  const mossExtrudeSettings = { depth: 0.15, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.05, bevelThickness: 0.05 };
+  const mossShape = useMemo(() => {
+    const shape = new THREE.Shape();
+    // Start top left
+    shape.moveTo(-1.0, 2.7);
+    // Move top right
+    shape.lineTo(1.0, 2.7);
+    // Diagonal slope down to middle left (stops precisely at the solid chassis floor)
+    shape.lineTo(-0.2, -2.7);
+    // Bottom left corner
+    shape.lineTo(-1.0, -2.7);
+    shape.closePath();
+    return shape;
+  }, []);
+
   return (
     <group position={[0, 4, 0]}>
       {/* --- Premium Chassis Elements --- */}
-      {/* Base Slab */}
-      <RoundedBox args={[4.4, 0.4, 3.4]} position={[0, -3.8, 0]} radius={0.15} smoothness={4} material={chassisMat} />
       
       {/* Roof Slab */}
       <RoundedBox args={[4.4, 0.4, 3.4]} position={[0, 3.8, 0]} radius={0.15} smoothness={4} material={chassisMat} />
@@ -86,32 +100,25 @@ export function ExteriorShell({ opacity }: { opacity: number }) {
       {/* Right Wall Pillar (Housing the vents and display) */}
       <RoundedBox args={[1.0, 7.2, 3.0]} position={[1.5, 0, 0.1]} radius={0.15} smoothness={4} material={chassisMat} />
       
-      {/* Left Back Wall Pillar - Moss Support */}
-      <RoundedBox args={[1.2, 7.2, 1.0]} position={[-1.4, 0, -1.0]} radius={0.15} smoothness={4} material={chassisMat} />
-      
-      {/* Left Front Support Pillar (Substrate under Moss) */}
-      <RoundedBox args={[2.0, 7.2, 2.0]} position={[-1.2, 0, 0.5]} radius={0.2} smoothness={4} material={chassisMat} />
+      {/* (Removed solid left-side chassis pillars so Algae Tank can sit right behind the Moss) */}
 
-      {/* The thin lush Moss Carpet covering the front and outer left side of the pillar */}
-      {/* Front Moss Face */}
-      <mesh position={[-1.2, 0, 1.51]}>
-        <planeGeometry args={[1.8, 6.8]} />
-        <meshBasicMaterial color="#000" transparent opacity={0.0} /> {/* Invisible collider/backer if needed */}
+      {/* Front Moss Face - Custom Diagonal Shape (Positioned above chassis floor) */}
+      <mesh position={[-1.2, 1.1, 1.48]}>
+        <extrudeGeometry args={[mossShape, mossExtrudeSettings]} />
+        <primitive object={mossShader} attach="material" />
+        <ComponentLabel text="Moss Bio-Adsorption (Carpet)" position={[0, -2.0, 0.5]} />
       </mesh>
-      <RoundedBox args={[1.9, 7.0, 0.1]} position={[-1.2, 0, 1.55]} radius={0.05} smoothness={4} material={mossShader}>
-        <ComponentLabel text="Moss Bio-Adsorption (Carpet)" position={[0, -2.5, 0.5]} />
-      </RoundedBox>
       
-      {/* Outer Left Moss Face */}
-      <RoundedBox args={[0.1, 7.0, 1.9]} position={[-2.25, 0, 0.5]} radius={0.05} smoothness={4} material={mossShader} />
+      {/* Outer Left Moss Face (Now spans only the Algae tank height) */}
+      <RoundedBox args={[0.15, 5.4, 2.8]} position={[-2.25, 1.1, 0.0]} radius={0.05} smoothness={4} material={mossShader} />
 
-      {/* --- Encapsulating Front Glass Window --- */}
-      {/* Spans the gap between Moss and the Right Wall */}
-      <RoundedBox args={[2.2, 7.2, 0.1]} position={[0.4, 0, 1.4]} radius={0.05} smoothness={2} material={glassMat} />
-      {/* Side glass to close the box if needed */}
-      <RoundedBox args={[0.1, 7.2, 2.2]} position={[-0.2, 0, 0.3]} radius={0.05} smoothness={2} material={glassMat} />
+      {/* --- Encapsulating Front Glass Window (Covers the full inner machine) --- */}
+      {/* Spans the gap over both the Algae Tank and the Filter Chamber */}
+      <RoundedBox args={[3.2, 7.2, 0.1]} position={[-0.6, 0.0, 1.4]} radius={0.05} smoothness={2} material={glassMat} />
+      {/* Side glass acting as inner wall */}
+      <RoundedBox args={[0.1, 7.2, 2.8]} position={[-2.2, 0.0, 0]} radius={0.05} smoothness={2} material={glassMat} />
       {/* Back glass for sunlight penetration */}
-      <RoundedBox args={[2.2, 7.2, 0.1]} position={[0.4, 0, -1.4]} radius={0.05} smoothness={2} material={glassMat} />
+      <RoundedBox args={[3.2, 7.2, 0.1]} position={[-0.6, 0.0, -1.4]} radius={0.05} smoothness={2} material={glassMat} />
 
       {/* --- UI & Output Cutouts on Right Wall --- */}
       {/* LED Display Screen */}
@@ -135,16 +142,7 @@ export function ExteriorShell({ opacity }: { opacity: number }) {
         <meshBasicMaterial color="#00ffff" transparent opacity={0.6} />
       </mesh>
 
-      {/* Intake Ring (Bottom Right) */}
-      <mesh position={[1.5, -2.5, 1.61]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.3, 0.08, 16, 32]} />
-        <meshStandardMaterial color="#444" metalness={0.9} roughness={0.2} />
-        <ComponentLabel text="Air Intake (Sides)" position={[0.5, 0, 1.0]} />
-      </mesh>
-      <mesh position={[1.5, -2.5, 1.62]}>
-        <circleGeometry args={[0.25, 32]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.8} />
-      </mesh>
+      {/* (Intake Ring removed, now officially located on the FiltrationBase louvers) */}
 
     </group>
   );
