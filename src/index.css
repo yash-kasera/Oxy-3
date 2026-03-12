@@ -1,0 +1,107 @@
+:root {
+  --bg-color: #f0f4f8;
+  --text-color: #1a202c;
+  --accent-color: #38a169;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --hud-bg: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] {
+  --bg-color: #12151c;
+  --text-color: #e2e8f0;
+  --accent-color: #48bb78;
+  --glass-bg: rgba(0, 0, 0, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --hud-bg: rgba(20, 24, 30, 0.85);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Telemetry Overlay */
+.telemetry-overlay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  padding: 20px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  pointer-events: none; /* Let clicks pass through if needed, though usually hud is interactive. dat.gui will handle controls. */
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+
+.telemetry-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--accent-color);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.telemetry-stat {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 8px;
+}
+
+.telemetry-stat span:last-child {
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 1.05rem;
+}
+
+.telemetry-stat.highlight span:last-child {
+  color: var(--accent-color);
+  text-shadow: 0 0 10px var(--accent-color);
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  padding: 10px 16px;
+  background: var(--hud-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-color);
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Specific dg (dat.gui) overrides to make it fit slightly better in modern UI */
+.dg.ac {
+  z-index: 20 !important;
+  top: 300px !important;
+}
