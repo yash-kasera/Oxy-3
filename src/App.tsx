@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { OrbitControls, Environment, Grid } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import GUI from 'lil-gui';
 
@@ -12,36 +12,82 @@ import { AirParticles } from './components/AirParticles';
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
-  // Simulation State
-  const [co2Ppm, setCo2Ppm] = useState(450);
-  const [xrayView, setXrayView] = useState(0.2); // Default to slightly see-through
-  const [flowSpeed, setFlowSpeed] = useState(1.0);
-  const [algaeHealth] = useState(0.95); // Constant for now
+  // Real-world Fixed Telemetry
+  const co2Ppm = 450;
+  const flowSpeed = 1.0; 
+  const pmRemoval = 99.9; // Modern HEPA efficiency
+  const baseOxygen = 21.0; // Ambient O2%
 
-  // Calculated Telemetry
-  const o2Output = (co2Ppm * flowSpeed * algaeHealth * 0.05).toFixed(2); // purely illustrative formula
-  const pmRemoval = Math.min(100, (flowSpeed * 80)).toFixed(1);
+  // Simulation State
+  const [simStatus, setSimStatus] = useState<'idle' | 'running' | 'completed'>('idle');
+  const [currentDay, setCurrentDay] = useState(1);
+  const [secondsPerDay, setSecondsPerDay] = useState(0.5); // Default to fast simulation
+  const [accumulatedO2, setAccumulatedO2] = useState(0); // Tracks total O2 pumped into room
+
+  // Biological Lifecycle (1 to 50)
+  // Algae grows denser continuously up to Day 45. 
+  // It is 100% healthy until Day 45, when it becomes too dense and blocks light, causing health to crash.
+  const algaeDensity = Math.min(1.0, currentDay / 45); 
+  const algaeHealth = currentDay > 45 ? Math.max(0, 1.0 - ((currentDay - 45) / 5.0)) : 1.0;
+
+  // Room Oxygen climbs from 21.0% up to a theoretical max as O2 is pumped in
+  const oxygenPercent = (baseOxygen + accumulatedO2).toFixed(1); 
+
+  // Simulation Loop
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const animate = (time: number) => {
+      const delta = (time - lastTime) / 1000;
+      lastTime = time;
+
+      if (simStatus === 'running') {
+        setCurrentDay(prevDay => {
+          const nextDay = prevDay + delta / secondsPerDay;
+          
+          // Calculate how much O2 was produced this frame (depends on current algae health)
+          const currentHealth = nextDay > 45 ? Math.max(0, 1.0 - ((nextDay - 45) / 5.0)) : 1.0;
+          
+          // Add to room O2, scaled by time passed and algae efficiency
+          setAccumulatedO2(prevO2 => prevO2 + (delta * currentHealth * 0.3));
+
+          if (nextDay >= 50) {
+            setSimStatus('completed');
+            return 50;
+          }
+          return nextDay;
+        });
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+
+    if (simStatus === 'running') {
+      lastTime = performance.now();
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [simStatus, secondsPerDay]);
 
   // GUI Setup
   useEffect(() => {
-    const gui = new GUI({ width: 300, title: 'Simulation Controls' });
+    const guiContainer = document.getElementById('gui-container');
+    if (guiContainer) guiContainer.innerHTML = '';
+    const gui = new GUI({ container: guiContainer || undefined, title: 'Simulation Speed' });
     
     // We use a proxy object for gui to bind to
     const params = {
-      co2Ppm: co2Ppm,
-      xrayView: xrayView,
-      flowSpeed: flowSpeed,
+      secondsPerDay: secondsPerDay,
     };
 
-    gui.add(params, 'co2Ppm', 300, 2000).name('CO2 Intake (PPM)').onChange((v: number) => setCo2Ppm(v));
-    gui.add(params, 'xrayView', 0.0, 1.0).name('X-Ray View (Opacity)').onChange((v: number) => setXrayView(v));
-    gui.add(params, 'flowSpeed', 0.1, 5.0).name('Flow Speed').onChange((v: number) => setFlowSpeed(v));
+    gui.add(params, 'secondsPerDay', 0.1, 5.0).name('Secs per Day').onChange((v: number) => setSecondsPerDay(v));
 
     return () => {
       gui.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once, state updates will happen via onChange
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -52,62 +98,102 @@ export default function App() {
   };
 
   return (
-    <>
-      <button className="theme-toggle" onClick={toggleTheme}>
-        {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-      </button>
+    <div className="app-container">
+      <div className="canvas-container">
+        <button className="theme-toggle" onClick={toggleTheme}>
+          {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+        </button>
 
-      <div className="telemetry-overlay">
-        <div className="telemetry-title">Oxy-3 Simulator v1.0</div>
-        
-        <div className="telemetry-stat">
-          <span>CO2 Intake:</span>
-          <span>{co2Ppm.toFixed(0)} PPM</span>
-        </div>
-        <div className="telemetry-stat">
-          <span>Flow Velocity:</span>
-          <span>{flowSpeed.toFixed(2)} m/s</span>
-        </div>
-        <div className="telemetry-stat highlight">
-          <span>O2 Output:</span>
-          <span>{o2Output} L/hr</span>
-        </div>
-        <div className="telemetry-stat">
-          <span>PM2.5 Removal:</span>
-          <span>{pmRemoval}%</span>
-        </div>
-        <div className="telemetry-stat" style={{ borderBottom: 'none', paddingBottom: 0 }}>
-          <span>Algae Health:</span>
-          <span style={{ color: 'var(--accent-color)' }}>Optimal ({(algaeHealth * 100).toFixed(0)}%)</span>
-        </div>
+        <Canvas camera={{ position: [0, 15, 40], fov: 45 }} gl={{ antialias: true }}>
+          <fog attach="fog" args={[theme === 'light' ? '#f0f4f8' : '#12151c', 10, 80]} />
+          <ambientLight intensity={theme === 'light' ? 0.7 : 0.3} />
+          <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow />
+          
+          <Environment preset="city" />
+
+          {/* Infinite Ground Grid for Scale Reference */}
+          <Grid 
+            position={[0, -4.8, 0]} 
+            args={[200, 200]} 
+            cellColor={theme === 'light' ? "#cccccc" : "#333333"} 
+            sectionColor={theme === 'light' ? "#aaaaaa" : "#555555"} 
+            sectionSize={5} 
+            cellSize={1} 
+            fadeDistance={80} 
+          />
+
+          <group position={[0, -4, 0]}>
+            <FiltrationBase />
+            <CoreReactor algaeHealth={algaeHealth} algaeDensity={algaeDensity} />
+            <ExteriorShell opacity={0.2} />
+            <AirParticles flowSpeed={simStatus === 'running' ? flowSpeed : 0.0} co2Ppm={co2Ppm} algaeHealth={algaeHealth} />
+          </group>
+
+          <OrbitControls 
+            enablePan={false}
+            minDistance={5}
+            maxDistance={150}
+            maxPolarAngle={Math.PI / 2 + 0.1} 
+          />
+          
+          {/* Post Processing for the UV-C and O2 Glow */}
+          <EffectComposer>
+            <Bloom luminanceThreshold={1.2} mipmapBlur intensity={1.5} />
+          </EffectComposer>
+        </Canvas>
       </div>
 
-      <Canvas camera={{ position: [0, 8, 15], fov: 45 }} gl={{ antialias: true }}>
-        <fog attach="fog" args={[theme === 'light' ? '#f0f4f8' : '#12151c', 10, 50]} />
-        <ambientLight intensity={theme === 'light' ? 0.7 : 0.3} />
-        <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow />
-        
-        <Environment preset="city" />
+      <div className="right-panel">
+        <div className="telemetry-overlay">
+          <div className="telemetry-title">Oxy-3 Simulator v1.0</div>
+          
+          <div className="telemetry-stat">
+            <span>Simulation Time:</span>
+            <span>Day {Math.floor(currentDay)} / 50</span>
+          </div>
+          <div className="telemetry-stat">
+            <span>Airflow Velocity:</span>
+            <span>{flowSpeed.toFixed(2)} m/s</span>
+          </div>
+          <div className="telemetry-stat">
+            <span>CO2 Intake:</span>
+            <span>{co2Ppm.toFixed(0)} PPM</span>
+          </div>
+          <div className="telemetry-stat highlight">
+            <span>Room Oxygen Level:</span>
+            <span>{oxygenPercent}%</span>
+          </div>
+          <div className="telemetry-stat">
+            <span>PM2.5 Removal:</span>
+            <span>{pmRemoval}%</span>
+          </div>
+          <div className="telemetry-stat" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+            <span>Algae Health:</span>
+            <span style={{ color: algaeHealth > 0.5 ? 'var(--accent-color)' : algaeHealth > 0.2 ? 'orange' : 'red' }}>
+              {(algaeHealth * 100).toFixed(0)}%
+            </span>
+          </div>
 
-        <group position={[0, -4, 0]}>
-          <FiltrationBase />
-          <CoreReactor />
-          <ExteriorShell opacity={xrayView} />
-          <AirParticles flowSpeed={flowSpeed} co2Ppm={co2Ppm} />
-        </group>
+          <div style={{ marginTop: 20 }}>
+            {simStatus === 'idle' && (
+              <button className="sim-button" onClick={() => setSimStatus('running')}>Start Simulation</button>
+            )}
+            {simStatus === 'completed' && (
+              <button className="sim-button" onClick={() => { 
+                setCurrentDay(1); 
+                setAccumulatedO2(0);
+                setSimStatus('idle'); 
+              }}>Reset Algae</button>
+            )}
+            {simStatus === 'running' && (
+              <button className="sim-button" onClick={() => setSimStatus('idle')}>Pause</button>
+            )}
+          </div>
+        </div>
 
-        <OrbitControls 
-          enablePan={false}
-          minDistance={5}
-          maxDistance={25}
-          maxPolarAngle={Math.PI / 2 + 0.1} 
-        />
-        
-        {/* Post Processing for the UV-C and O2 Glow */}
-        <EffectComposer>
-          <Bloom luminanceThreshold={1.2} mipmapBlur intensity={1.5} />
-        </EffectComposer>
-      </Canvas>
-    </>
+        {/* The dat.gui controls append here */}
+        <div id="gui-container"></div>
+      </div>
+    </div>
   );
 }

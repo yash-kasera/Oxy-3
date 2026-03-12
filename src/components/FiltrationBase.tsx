@@ -6,35 +6,49 @@ export function FiltrationBase() {
   return (
     <group position={[0, 4, 0]}>
       {/* Thick Main Base Housing / Ground connection */}
-      <RoundedBox args={[4.4, 2.0, 3.4]} position={[0, -4.6, 0]} radius={0.15} smoothness={4}>
+      <RoundedBox args={[4.4, 1.0, 3.4]} position={[0, -4.3, 0]} radius={0.15} smoothness={4}>
         <meshStandardMaterial color="#d0d4d8" metalness={0.8} roughness={0.2} />
       </RoundedBox>
 
       {/* Visible Air Intake Vents (Front Face of the Base) */}
-      {/* Created as dark inset grooves to look like functional louvers */}
-      {[-1.5, -0.5, 0.5, 1.5].map((x, i) => (
-        <mesh key={`front-vent-${i}`} position={[x, -4.6, 1.70]}>
-          <boxGeometry args={[0.6, 1.2, 0.05]} />
+      {/* Created as thin dark inset grooves to look like functional louvers */}
+      {[-1.8, -1.2, -0.6, 0, 0.6, 1.2, 1.8].map((x, i) => (
+        <mesh key={`front-vent-${i}`} position={[x, -4.3, 1.70]}>
+          <boxGeometry args={[0.2, 0.6, 0.05]} />
           <meshBasicMaterial color="#050505" />
         </mesh>
       ))}
       {/* Visible Air Intake Vents (Back Face of the Base) */}
-      {[-1.5, -0.5, 0.5, 1.5].map((x, i) => (
-        <mesh key={`back-vent-${i}`} position={[x, -4.6, -1.70]}>
-          <boxGeometry args={[0.6, 1.2, 0.05]} />
+      {[-1.8, -1.2, -0.6, 0, 0.6, 1.2, 1.8].map((x, i) => (
+        <mesh key={`back-vent-${i}`} position={[x, -4.3, -1.70]}>
+          <boxGeometry args={[0.2, 0.6, 0.05]} />
           <meshBasicMaterial color="#050505" />
         </mesh>
       ))}
-      <ComponentLabel text="Main Base Intake Vents" position={[0, -4.6, 1.9]} />
+      {/* Visible Air Intake Vents (Left Face of the Base) */}
+      {[-1.2, -0.6, 0, 0.6, 1.2].map((z, i) => (
+        <mesh key={`left-vent-${i}`} position={[-2.20, -4.3, z]} rotation={[0, Math.PI / 2, 0]}>
+          <boxGeometry args={[0.2, 0.6, 0.05]} />
+          <meshBasicMaterial color="#050505" />
+        </mesh>
+      ))}
+      {/* Visible Air Intake Vents (Right Face of the Base) */}
+      {[-1.2, -0.6, 0, 0.6, 1.2].map((z, i) => (
+        <mesh key={`right-vent-${i}`} position={[2.20, -4.3, z]} rotation={[0, Math.PI / 2, 0]}>
+          <boxGeometry args={[0.2, 0.6, 0.05]} />
+          <meshBasicMaterial color="#050505" />
+        </mesh>
+      ))}
+      <ComponentLabel text="Main Base Intake Vents" position={[0, -4.3, 1.9]} />
 
       {/* Inner Chamber Separator Floor (Above Intakes) */}
-      <mesh position={[-0.6, -3.8, 0]}>
+      <mesh position={[-0.6, -4.0, 0]}>
         <boxGeometry args={[3.1, 0.1, 2.7]} />
         <meshStandardMaterial color="#222" metalness={0.5} roughness={0.8} />
       </mesh>
 
       {/* Internal Filter Blocks - Centered inside the glass and shrunk to avoid Z-fighting */}
-      <group position={[-0.6, -3.5, 0]}>
+      <group position={[-0.6, -3.7, 0]}>
         
         {/* UV-C Photo-catalytic Stage (Bottom Layer) */}
         <group position={[0, -0.3, 0]}>
@@ -73,7 +87,7 @@ export function FiltrationBase() {
       </group>
       
       {/* Ceiling Separator / Tank Floor (Above Filters) */}
-      <mesh position={[-0.6, -1.8, 0]}>
+      <mesh position={[-0.6, -2.0, 0]}>
         <boxGeometry args={[3.1, 0.1, 2.7]} />
         <meshStandardMaterial color="#444" metalness={0.9} roughness={0.5} />
       </mesh>

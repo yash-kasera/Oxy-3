@@ -2,19 +2,20 @@ import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 
-export function AirParticles({ flowSpeed, co2Ppm }: { flowSpeed: number, co2Ppm: number }) {
+export function AirParticles({ flowSpeed, co2Ppm, algaeHealth = 1.0 }: { flowSpeed: number, co2Ppm: number, algaeHealth?: number }) {
   const pointsRef = useRef<THREE.Points>(null);
   
-  // Scale particle count linearly based on CO2 intensity
-  const PARTICLE_COUNT = Math.floor(2000 + (co2Ppm / 1500) * 3000); // 2k to 5k particles
-  const MAX_LIFETIME = 4.0;
+  // Scale particle count linearly based on CO2 intensity - Increased massively for hemispherical volume
+  const PARTICLE_COUNT = Math.floor(15000 + (co2Ppm / 1500) * 30000); // 15k to 45k particles
+  const MAX_LIFETIME = 12.0; // Needs to be longer to travel from outside the 20x bounds
 
   // Generate initial attributes: position, random seed, and age.
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uFlowSpeed: { value: flowSpeed },
-    uMaxLifetime: { value: MAX_LIFETIME }
-  }), [flowSpeed]);
+    uMaxLifetime: { value: MAX_LIFETIME },
+    uAlgaeHealth: { value: algaeHealth }
+  }), [flowSpeed, algaeHealth]);
 
   const { positions, randoms, ages } = useMemo(() => {
     const p = new Float32Array(PARTICLE_COUNT * 3);
@@ -52,7 +53,8 @@ export function AirParticles({ flowSpeed, co2Ppm }: { flowSpeed: number, co2Ppm:
         uniform float uMaxLifetime;
 
         varying float vAgeRatio;
-        varying vec3 vColorPhase;
+        varying float vIsSuction;
+        varying float vType;
 
         // Easing functions
         float easeInOutQuad(float t) {
@@ -65,70 +67,100 @@ export function AirParticles({ flowSpeed, co2Ppm }: { flowSpeed: number, co2Ppm:
           float t = currentAge / uMaxLifetime; // normalized 0.0 to 1.0 (start to finish)
           vAgeRatio = t;
 
-          // Route 1: Through the Moss Carpet (Front-Left)
-          // Route 2: Through the Bottom Grille Intake (Center-Right)
-          float route = step(0.5, randoms.z); // 50% chance of either route
+          // Determine if this particle is part of the 20% that gets sucked into the machine
+          // or the 80% that just drifts ambiently in the large hemisphere.
+          float isSuction = step(0.8, randoms.x);
+          vIsSuction = isSuction;
 
-          vec3 startPos;
-          vec3 midPos;
-          vec3 endPos;
+          // Assign particle type for semantic coloring: Dust, CO2, Rest
+          vType = fract(randoms.z * 13.0);
 
-          // --- DEFINE THE PATHWAY ---
-          vec3 startPos;
-          vec3 midPos1; // Entry into vents
-          vec3 midPos2; // Ascending through Algae tank
-          vec3 endPos;
+          // --- DEFINE THE WAYPOINTS ON THE FLUID PATH ---
+          // 1. Hemisphere Ambient Start (Radius 40 to 100 units around the machine)
+          float r = 40.0 + randoms.y * 60.0;
+          float theta = randoms.x * 6.28318; // 0 to 2PI
+          float phi = randoms.z * 1.57079;   // 0 to PI/2 (only upper hemisphere)
+          vec3 hemiPos = vec3(r * sin(phi) * cos(theta), r * cos(phi) - 4.5, r * sin(phi) * sin(theta));
 
-          if (route == 0.0) {
-              // Route 0: Sucked through FRONT Base Vents
-              // Spawn outside front
-              startPos = vec3((randoms.x - 0.5) * 6.0, -2.0 + (randoms.y * 1.5), 3.0 + randoms.z * 3.0);
-              // Midpoint 1: Funneling tightly into the front base louvers
-              midPos1 = vec3((randoms.x - 0.5) * 2.8, -0.6, 1.7);
+          // 2. Moss Carpet Adsorption Target (Left or Front face)
+          vec3 mossPos;
+          if (randoms.z > 0.5) {
+              // Target Front Moss Sheet
+              mossPos = vec3(mix(-1.0, 1.0, randoms.x), mix(-2.7, 2.7, randoms.y), 1.6);
           } else {
-              // Route 1: Sucked through BACK Base Vents
-              // Spawn outside back
-              startPos = vec3((randoms.x - 0.5) * 6.0, -2.0 + (randoms.y * 1.5), -3.0 - randoms.z * 3.0);
-              // Midpoint 1: Funneling tightly into the back base louvers
-              midPos1 = vec3((randoms.x - 0.5) * 2.8, -0.6, -1.7);
+              // Target Left Moss Sheet
+              mossPos = vec3(-2.4, mix(-2.7, 2.7, randoms.y), mix(-1.4, 1.4, randoms.x));
           }
 
-          // Midpoint 2: Surging and spreading freely inside the specifically narrowed Algae Tank volume (y=1.0 to y=6.0)
-          midPos2 = vec3(-0.6 + (randoms.x - 0.5) * 2.6, 1.0 + randoms.y * 5.0, (randoms.z - 0.5) * 2.2);
+          // 3. Intake Vents (Slides down from moss surface into the bottom grille on all 4 sides)
+          vec3 ventPos;
+          if (randoms.x < 0.25) {
+              ventPos = vec3(mix(-1.8, 1.8, randoms.y), -4.1, 1.8); // Front
+          } else if (randoms.x < 0.5) {
+              ventPos = vec3(mix(-1.8, 1.8, randoms.y), -4.1, -1.8); // Back
+          } else if (randoms.x < 0.75) {
+              ventPos = vec3(-2.2, -4.1, mix(-1.2, 1.2, randoms.y)); // Left
+          } else {
+              ventPos = vec3(2.2, -4.1, mix(-1.2, 1.2, randoms.y)); // Right
+          }
 
-          // Both routes exit through the top-right Oxygen Vent
-          endPos = vec3(1.6, 6.5, 1.6); // Slightly protruding from the vent hole
+          // 4. Filtration Chamber (Ascends through the dense solid base, pulled towards the front glass for visibility)
+          vec3 filterPos = vec3(-0.6 + (randoms.x - 0.5) * 2.8, mix(-3.7, -2.0, randoms.y), 0.5 + (randoms.z - 0.5) * 1.4);
 
-          // --- INTERPOLATE POSITION ALONG PATH ---
-          // Using a Cubic Bezier curve interpolation: 
-          // pos = (1-t)^3 * start + 3(1-t)^2 * t * mid1 + 3(1-t) * t^2 * mid2 + t^3 * end
-          
-          float u = 1.0 - t;
-          float uu = u * u;
-          float uuu = uu * u;
-          float tt = t * t;
-          float ttt = tt * t;
+          // 5. Microalgae Liquid Tank (Circulates inside the green glowing tank, biased towards the front glass)
+          vec3 tankPos = vec3(-0.6 + (randoms.x - 0.5) * 2.6, mix(1.0, 5.0, randoms.y), 0.5 + (randoms.z - 0.5) * 1.0);
 
-          vec3 currentPos = (uuu * startPos) + (3.0 * uu * t * midPos1) + (3.0 * u * tt * midPos2) + (ttt * endPos);
+          // 6. Output Vent Choke Point (Front Face of Right Pillar)
+          // Stream pushes directly FORWARD (+Z) out from the flat glass face
+          vec3 exitPos = vec3(1.5 + (randoms.y - 0.5) * 0.4, 2.8 + (randoms.z - 0.5) * 0.4, 1.6 + (randoms.x * 1.0));
 
-          // Add a little turbulent noise based on randoms to make them look like chaotic air
-          currentPos.x += sin(uTime * 5.0 + randoms.x * 10.0) * 0.1;
-          currentPos.y += cos(uTime * 4.0 + randoms.y * 10.0) * 0.1;
-          currentPos.z += sin(uTime * 6.0 + randoms.z * 10.0) * 0.1;
+          // 7. Ambient Diffusion (Pure oxygen blowing powerfully outwards and spreading)
+          vec3 diffusePos = vec3(1.5 + sin(randoms.x * 6.28) * 15.0, 2.8 + cos(randoms.z * 6.28) * 15.0, 50.0 + randoms.y * 30.0);
 
-          // Pass info to fragment for coloring
-          vColorPhase = vec3(1.0); // unused for now, color done purely on 't'
+          // --- PATH EVALUATION ---
+          vec3 pos;
+          if (isSuction == 1.0) {
+              // Smooth aerodynamic Multi-segment Path using continuous hermite interpolation
+              // Smoothstep already provides an S-curve easing which prevents sharp angles,
+              // but we widen the transition zones to make the flow completely continuous and aerodynamic.
+              pos = hemiPos;
+              pos = mix(pos, mossPos, smoothstep(0.00, 0.20, t));  // Gentle drift towards moss
+              pos = mix(pos, ventPos, smoothstep(0.15, 0.35, t));  // Smoothly slide down the moss into vents
+              pos = mix(pos, filterPos, smoothstep(0.30, 0.50, t)); // Travel through filters
+              pos = mix(pos, tankPos, smoothstep(0.45, 0.85, t));  // Swirl up the Core Reactor
+              pos = mix(pos, exitPos, smoothstep(0.80, 0.92, t));  // Funnel into the exit port
+              pos = mix(pos, diffusePos, smoothstep(0.90, 1.00, t)); // Blast out forwards into the room
+
+              // Tight physics inside the machine boundaries, chaotic outside
+              float turbulence = (t > 0.35 && t < 0.85) ? 0.05 : 0.8;
+              pos.x += sin(uTime * 2.0 + randoms.y * 10.0) * turbulence;
+              pos.y += cos(uTime * 2.5 + randoms.x * 10.0) * turbulence;
+              pos.z += sin(uTime * 2.2 + randoms.z * 10.0) * turbulence;
+          } else {
+              // Just drift lazily in the ambient hemisphere (Normal background air)
+              pos = hemiPos;
+              // Very slow, massive drift
+              pos.x += sin(uTime * 0.2 + randoms.y * 20.0) * 10.0 * t * 2.0;
+              pos.y += cos(uTime * 0.15 + randoms.z * 20.0) * 5.0 * t * 2.0;
+              pos.z += sin(uTime * 0.25 + randoms.x * 20.0) * 10.0 * t * 2.0;
+          }
 
           // Standard projection mapping
-          vec4 mvPosition = modelViewMatrix * vec4(currentPos, 1.0);
+          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
           
-          // Size fades in at start, grows in middle, shrinks at end
-          gl_PointSize = (10.0 * (1.0 - abs(t - 0.5) * 2.0)) * (10.0 / -mvPosition.z);
+          // Dynamic sizing 
+          float baseSize = 30.0;
+          if (t < 0.25 || t > 0.92) baseSize = 80.0; // Larger blurriest dots far away
+          gl_PointSize = baseSize * (1.0 / -mvPosition.z);
+          gl_PointSize = clamp(gl_PointSize, 1.0, 12.0); // Keep them looking like tiny fine mist
         }
       `,
       fragmentShader: `
+        uniform float uAlgaeHealth;
         varying float vAgeRatio;
+        varying float vIsSuction;
+        varying float vType;
 
         void main() {
           // Circular particle shape
@@ -139,23 +171,44 @@ export function AirParticles({ flowSpeed, co2Ppm }: { flowSpeed: number, co2Ppm:
           // Inner glow calculation
           float alpha = 1.0 - (dist * 2.0);
 
-          // Color Gradient based on lifetime (from intake to output)
-          // Start: Polluted Grey/Blue -> Middle: Filtering Green -> End: Pure Neon Green O2
-          vec3 colorStart = vec3(0.2, 0.25, 0.3);
-          vec3 colorMid   = vec3(0.1, 0.6, 0.2);
-          vec3 colorEnd   = vec3(0.0, 1.0, 0.2);
-
+          // Semantic Colors for Air Composition
+          vec3 colorDust  = vec3(0.6, 0.4, 0.2);   // Brown Dust / Particulate matter
+          vec3 colorCO2   = vec3(1.0, 0.2, 0.2);   // Red CO2
+          vec3 colorO2    = vec3(0.0, 1.0, 0.2);   // Green Oxygen
+          vec3 colorInert = vec3(0.8, 0.8, 0.8);   // White/Grey Inert Air (Nitrogen, mostly)
+          
           vec3 finalColor;
-          if (vAgeRatio < 0.5) {
-              finalColor = mix(colorStart, colorMid, vAgeRatio * 2.0);
+          float particleAlpha = alpha;
+
+          // Composition defined at particle birth
+          if (vType < 0.15) {
+              finalColor = colorDust; // 15% Dust visually
+          } else if (vType < 0.30) {
+              finalColor = colorCO2;  // 15% CO2 visually
           } else {
-              finalColor = mix(colorMid, colorEnd, (vAgeRatio - 0.5) * 2.0);
+              finalColor = colorInert; // 70% normal white air
           }
 
-          // Fade opacity at the extreme birth/death
-          float fade = smoothstep(0.0, 0.1, vAgeRatio) * smoothstep(1.0, 0.9, vAgeRatio);
+          if (vIsSuction == 1.0) {
+              if (vType < 0.15) {
+                  // Dust gets completely trapped by HEPA filter (around t=0.45) and stops existing
+                  particleAlpha *= (1.0 - smoothstep(0.35, 0.45, vAgeRatio));
+              } else if (vType < 0.30) {
+                  // CO2 gets completely converted to pure O2 in the Algae tank ONLY IF algae is healthy
+                  // If algaeHealth is 0, conversion progress is forced to 0
+                  float conversionProgress = clamp((vAgeRatio - 0.50) / 0.30, 0.0, 1.0) * uAlgaeHealth;
+                  finalColor = mix(colorCO2, colorO2, conversionProgress);
+              }
+              // Normal white air passes through untouched.
+          }
 
-          gl_FragColor = vec4(finalColor, alpha * fade * 0.8);
+          // Slow crossfade at extreme boundaries so particles never suddenly "pop" onto the vents
+          float fade = smoothstep(0.0, 0.05, vAgeRatio) * smoothstep(1.0, 0.95, vAgeRatio);
+          
+          // Suction particles are brightly illuminated, outside ambient air drops transparency significantly
+          float multiAlpha = vIsSuction == 1.0 ? 0.8 : 0.2;
+
+          gl_FragColor = vec4(finalColor, particleAlpha * fade * multiAlpha);
         }
       `,
       transparent: true,
@@ -168,6 +221,7 @@ export function AirParticles({ flowSpeed, co2Ppm }: { flowSpeed: number, co2Ppm:
     if (particleShader) {
       particleShader.uniforms.uTime.value = state.clock.elapsedTime;
       particleShader.uniforms.uFlowSpeed.value = flowSpeed;
+      particleShader.uniforms.uAlgaeHealth.value = algaeHealth;
     }
   });
 
