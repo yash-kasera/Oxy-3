@@ -53,12 +53,12 @@ export function ExteriorShell({ opacity }: { opacity: number }) {
 
   const glassMat = useMemo(() => new THREE.MeshPhysicalMaterial({
     color: '#ffffff',
-    transmission: 1.0,
-    opacity: 1.0,
     transparent: true,
+    opacity: 0.2,      // Low opacity for pure see-through window
+    metalness: 0.1,    // Slight reflection
     roughness: 0.05,
-    ior: 1.5,
-    thickness: 0.5,
+    clearcoat: 1.0,    // High gloss
+    clearcoatRoughness: 0.1,
   }), []);
 
   return (
@@ -89,16 +89,29 @@ export function ExteriorShell({ opacity }: { opacity: number }) {
       {/* Left Back Wall Pillar - Moss Support */}
       <RoundedBox args={[1.2, 7.2, 1.0]} position={[-1.4, 0, -1.0]} radius={0.15} smoothness={4} material={chassisMat} />
       
-      {/* The thick lush Moss Wall covering the left-front diagonal space */}
-      <RoundedBox args={[2.0, 7.2, 2.0]} position={[-1.2, 0, 0.5]} radius={0.2} smoothness={4} material={mossShader}>
-        <ComponentLabel text="Moss Bio-Adsorption" position={[0, -2.5, 1.2]} />
+      {/* Left Front Support Pillar (Substrate under Moss) */}
+      <RoundedBox args={[2.0, 7.2, 2.0]} position={[-1.2, 0, 0.5]} radius={0.2} smoothness={4} material={chassisMat} />
+
+      {/* The thin lush Moss Carpet covering the front and outer left side of the pillar */}
+      {/* Front Moss Face */}
+      <mesh position={[-1.2, 0, 1.51]}>
+        <planeGeometry args={[1.8, 6.8]} />
+        <meshBasicMaterial color="#000" transparent opacity={0.0} /> {/* Invisible collider/backer if needed */}
+      </mesh>
+      <RoundedBox args={[1.9, 7.0, 0.1]} position={[-1.2, 0, 1.55]} radius={0.05} smoothness={4} material={mossShader}>
+        <ComponentLabel text="Moss Bio-Adsorption (Carpet)" position={[0, -2.5, 0.5]} />
       </RoundedBox>
+      
+      {/* Outer Left Moss Face */}
+      <RoundedBox args={[0.1, 7.0, 1.9]} position={[-2.25, 0, 0.5]} radius={0.05} smoothness={4} material={mossShader} />
 
       {/* --- Encapsulating Front Glass Window --- */}
       {/* Spans the gap between Moss and the Right Wall */}
       <RoundedBox args={[2.2, 7.2, 0.1]} position={[0.4, 0, 1.4]} radius={0.05} smoothness={2} material={glassMat} />
       {/* Side glass to close the box if needed */}
       <RoundedBox args={[0.1, 7.2, 2.2]} position={[-0.2, 0, 0.3]} radius={0.05} smoothness={2} material={glassMat} />
+      {/* Back glass for sunlight penetration */}
+      <RoundedBox args={[2.2, 7.2, 0.1]} position={[0.4, 0, -1.4]} radius={0.05} smoothness={2} material={glassMat} />
 
       {/* --- UI & Output Cutouts on Right Wall --- */}
       {/* LED Display Screen */}
