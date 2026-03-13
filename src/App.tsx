@@ -8,13 +8,15 @@ import { FiltrationBase } from './components/FiltrationBase';
 import { CoreReactor } from './components/CoreReactor';
 import { ExteriorShell } from './components/ExteriorShell';
 import { AirParticles } from './components/AirParticles';
+import { HomeOxy3 } from './components/HomeOxy3';
 
 export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [activeModel, setActiveModel] = useState<'urban' | 'home'>('urban');
   
   // Real-world Fixed Telemetry
   const co2Ppm = 450;
-  const flowSpeed = 1.0; 
+  const flowSpeed = activeModel === 'urban' ? 1.0 : 0.6; // Visual animation speed
   const pmRemoval = 99.9; // Modern HEPA efficiency
   const baseOxygen = 21.0; // Ambient O2%
 
@@ -50,7 +52,8 @@ export default function App() {
           const currentHealth = nextDay > 45 ? Math.max(0, 1.0 - ((nextDay - 45) / 5.0)) : 1.0;
           
           // Add to room O2, scaled by time passed and algae efficiency
-          setAccumulatedO2(prevO2 => prevO2 + (delta * currentHealth * 0.3));
+          const o2Multiplier = activeModel === 'urban' ? 0.3 : 0.08;
+          setAccumulatedO2(prevO2 => prevO2 + (delta * currentHealth * o2Multiplier));
 
           if (nextDay >= 50) {
             setSimStatus('completed');
@@ -68,7 +71,7 @@ export default function App() {
     }
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [simStatus, secondsPerDay]);
+  }, [simStatus, secondsPerDay, activeModel]);
 
   // GUI Setup
   useEffect(() => {
@@ -122,12 +125,21 @@ export default function App() {
             fadeDistance={80} 
           />
 
-          <group position={[0, -4, 0]}>
-            <FiltrationBase />
-            <CoreReactor algaeHealth={algaeHealth} algaeDensity={algaeDensity} />
-            <ExteriorShell opacity={0.2} />
-            <AirParticles flowSpeed={simStatus === 'running' ? flowSpeed : 0.0} co2Ppm={co2Ppm} algaeHealth={algaeHealth} />
-          </group>
+          {activeModel === 'urban' ? (
+            <group position={[0, -4, 0]}>
+              <FiltrationBase />
+              <CoreReactor algaeHealth={algaeHealth} algaeDensity={algaeDensity} />
+              <ExteriorShell opacity={0.2} />
+              <AirParticles flowSpeed={simStatus === 'running' ? flowSpeed : 0.0} co2Ppm={co2Ppm} algaeHealth={algaeHealth} />
+            </group>
+          ) : (
+            <HomeOxy3 
+              algaeHealth={algaeHealth} 
+              algaeDensity={algaeDensity} 
+              flowSpeed={simStatus === 'running' ? flowSpeed : 0.0} 
+              co2Ppm={co2Ppm} 
+            />
+          )}
 
           <OrbitControls 
             enablePan={false}
@@ -144,6 +156,13 @@ export default function App() {
       </div>
 
       <div className="right-panel">
+        <div className="model-switcher">
+          <select value={activeModel} onChange={(e) => setActiveModel(e.target.value as 'urban' | 'home')}>
+            <option value="urban">Urban Oxy-3 Model</option>
+            <option value="home">Home Oxy-3 Tabletop</option>
+          </select>
+        </div>
+
         <div className="telemetry-overlay">
           <div className="telemetry-title">Oxy-3 Simulator v1.0</div>
           
@@ -151,10 +170,17 @@ export default function App() {
             <span>Simulation Time:</span>
             <span>Day {Math.floor(currentDay)} / 50</span>
           </div>
-          <div className="telemetry-stat">
-            <span>Airflow Velocity:</span>
-            <span>{flowSpeed.toFixed(2)} m/s</span>
-          </div>
+          {activeModel === 'urban' ? (
+            <div className="telemetry-stat">
+              <span>Airflow Velocity:</span>
+              <span>{flowSpeed.toFixed(2)} m/s</span>
+            </div>
+          ) : (
+            <div className="telemetry-stat">
+              <span>Airflow Rate:</span>
+              <span>5.0 L/min</span>
+            </div>
+          )}
           <div className="telemetry-stat">
             <span>CO2 Intake:</span>
             <span>{co2Ppm.toFixed(0)} PPM</span>

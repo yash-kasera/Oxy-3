@@ -94,6 +94,30 @@ body, html, #root {
   text-shadow: 0 0 10px var(--accent-color);
 }
 
+/* Model Switcher */
+.model-switcher {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.model-switcher select {
+  width: 100%;
+  padding: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.model-switcher select:focus {
+  border-color: var(--accent-color);
+}
+
 .theme-toggle {
   position: absolute;
   top: 20px;

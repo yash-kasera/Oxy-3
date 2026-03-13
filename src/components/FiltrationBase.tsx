@@ -60,28 +60,28 @@ export function FiltrationBase() {
               <meshStandardMaterial color="#55aaff" emissive="#3388ff" emissiveIntensity={2.0} />
             </mesh>
           ))}
-          <ComponentLabel text="UV-C Stage" position={[1.6, 0.1, 0]} />
+          <ComponentLabel text="Photocatalytic (TiO2)" position={[1.6, 0.1, 0]} />
         </group>
 
         {/* HEPA Filter Block (Stacked above UV-C with a gap) */}
         <mesh position={[0, 0.2, 0]}>
           <boxGeometry args={[3.0, 0.3, 2.6]} />
           <meshStandardMaterial color="#ffffff" roughness={1.0} />
-          <ComponentLabel text="HEPA Filter" position={[1.6, 0, 0]} />
+          <ComponentLabel text="HEPA (H13/H14)" position={[1.6, 0, 0]} />
         </mesh>
         
         {/* Activated Carbon Filter Block */}
         <mesh position={[0, 0.7, 0]}>
           <boxGeometry args={[3.0, 0.3, 2.6]} />
           <meshStandardMaterial color="#222222" roughness={0.8} />
-          <ComponentLabel text="Carbon Filter" position={[1.6, 0, 0]} />
+          <ComponentLabel text="Activated Carbon" position={[1.6, 0, 0]} />
         </mesh>
 
-        {/* Pre-Filter Layer (Top Layer just below the tank floor) */}
+        {/* Zeolite Filter Layer (Top Layer just below the tank floor) */}
         <mesh position={[0, 1.2, 0]}>
           <boxGeometry args={[3.0, 0.3, 2.6]} />
           <meshStandardMaterial color="#7a9e6a" roughness={0.9} />
-          <ComponentLabel text="Pre-Filter" position={[1.6, 0, 0]} />
+          <ComponentLabel text="Zeolite (Molecular Sieve)" position={[1.6, 0, 0]} />
         </mesh>
 
       </group>

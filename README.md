@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+# Oxy-3 WebGL Simulator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive, high-fidelity 3D simulation of the Oxy-3 air purification system built with React, Three.js, and React Three Fiber. This project visualizes both the large-scale "Urban" photobioreactor and the compact "Home" tabletop model, simulating realistic microalgae growth (O2-Genesis spiral) and multi-stage filtration (Photocatalytic UV-C, HEPA H13/H14, Activated Carbon, and Zeolite Molecular Sieve).
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Dual Models**: Switch seamlessly between the massive Urban Oxy-3 and the tabletop Home Oxy-3 models.
+- **Biologically Accurate Simulation**: Features a 50-day microalgae lifecycle where the organisms grow, peak in vibrant density around day 45, and eventually expire.
+- **Dynamic Particle Physics**: Thousands of independent WebGL particles represent ambient air, CO2, particulate matter, and purified oxygen, reacting in real-time to the machine's suction and filtration mechanics.
+- **Real-Time Telemetry HUD**: Monitors Room Oxygen accumulation, Airflow Velocity (or L/min rate), CO2 intake, and real-time internal Algae Health.
+- **Cinematic Rendering**: Utilizes HDRI environment mapping, glassmorphism UI, and post-processing bloom for glowing neon aesthetics.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: React 18, Vite (TypeScript)
+- **3D Engine**: Three.js, `@react-three/fiber`, `@react-three/drei`
+- **Post-Processing**: `@react-three/postprocessing`
+- **UI & Controls**: `lil-gui`, Vanilla CSS
 
-## Expanding the ESLint configuration
+## Setup Instructions
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Clone the repository:**
+   \`\`\`bash
+   git clone https://github.com/yash-kasera/Oxy-3.git
+   cd Oxy-3
+   \`\`\`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. **Install dependencies:**
+   \`\`\`bash
+   npm install
+   \`\`\`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. **Start the development server:**
+   \`\`\`bash
+   npm run dev
+   \`\`\`
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4. **Open in browser:**
+   Navigate to `http://localhost:5173` to view the simulation.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Usage
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Model Switcher**: Use the dropdown in the top right to toggle between Urban and Home architectures.
+- **Simulation Constraints**: Control the speed of the 50-day lifecycle simulation using the `Secs per Day` slider in the bottom right corner.
+- **View Controls**: Click and drag to orbit the camera, scroll to zoom in/out.
+- **Theme Toggle**: Switch between Light and Dark mode using the button in the top left corner.
